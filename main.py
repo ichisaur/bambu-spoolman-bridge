@@ -3,7 +3,8 @@ import xml.etree.ElementTree as ET
 import requests
 import yaml
 from bambuFTP import BambuPrinterFTP
-
+import os
+import Spoolman
 
 
 class Parse3MF:
@@ -34,9 +35,13 @@ bambu = BambuPrinterFTP(device_ip=device_ip, access_code= access_code)
 
 tempdir = "./temp/"
 
-bambu.connect()
-bambu.get_file('AAA-Cover_Plate_3.gcode.3mf')
-bambu.close_connection()
+if __debug__:
+    pass
+else:
+    bambu.connect()
+    bambu.get_file('AAA-Cover_Plate_3.gcode.3mf')
+    bambu.close_connection()
+
 
 with zipfile.ZipFile('./temp/temp.3mf') as zip_ref:
     zip_ref.extract('Metadata/slice_info.config', 'temp/')
@@ -46,7 +51,7 @@ filament_info = []
 for filament in slice_XML.iter('filament'):
     filament_info.append(filament.attrib)
 
-print(filament_info)
+#print(filament_info)
 
 plate_index = -1
 for metadata in slice_XML.iter('metadata'):
@@ -54,47 +59,26 @@ for metadata in slice_XML.iter('metadata'):
         plate_index = metadata.attrib["value"]
         break
 
-print(plate_index)
+# print(plate_index)
 
 with zipfile.ZipFile('./temp/temp.3mf') as zip_ref:
-    zip_ref.extract(f'Metadata/plate_{plate_index}.png', 'temp/')
+    path = zip_ref.extract(f'Metadata/plate_{plate_index}.png', 'temp/')
+    os.replace(path, 'temp/preview.png')
 
+spoolman_service = Spoolman.SpoolmanHandler(spoolman_url)
 
 for filament in filament_info:
     type = filament['type']
     idx = filament['tray_info_idx']
     color = filament['color'][1:]
-    payload = { 
-        'material' : type,
-        'idx' : idx,
-        'color_hex' : color,
-        'color_similarity_threshold' : 20
-    }
+
+    sm_filament = spoolman_service.find_filament(material= type, idx= idx, color_hex= color)
     
-    query_url = f"{spoolman_url}/api/v1/filament"
-    response = requests.get(query_url, params=payload).json()
-    if response:
-        filament_id = response[0]['id']
-        payload = { 
-            'filament.id' : filament_id,
-            'sort' :'spool_weight:asc'
-        }
-        query_url = f"{spoolman_url}/api/v1/spool"
-        response = requests.get(query_url, params=payload)
-        if response.json():
-            spool_id = response.json()[0]['id']
-            spool_weight_used = filament['used_g']
-            print(spool_weight_used)
-            payload = {
-                'use_weight' : spool_weight_used
-            }
-            query_url = f"{spoolman_url}/api/v1/spool/{spool_id}/use"
-            put_response = requests.put(query_url, json = payload)
-            print('Filament Found and Used')
-            print(put_response.json())
+    if sm_filament.id != "":
 
+        result = spoolman_service.use_filament_by_weight(sm_filament, filament['used_g'])
+        print(result)
 
-        print(response.json())
 
 
 

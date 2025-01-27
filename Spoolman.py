@@ -11,18 +11,19 @@ class Vendor:
     extra = ''
 
     def __init__(self, id = '', registered = '', name = '', empty_spool_weight = '', extra = '' ):
-        self.id = int(id)
+        self.id = id
         self.registered = registered
         self.name = name
-        self.empty_spool_weight = float(empty_spool_weight)
+        self.empty_spool_weight = empty_spool_weight
         self.extra = extra
         
     def from_json(self, json):
-        self.id = int(json['id'])
-        self.registered = json['registered']
-        self.name = json['name']
-        self.empty_spool_weight = float(json['empty_spool_weight'])
-        self.extra = json['extra']
+        self.id = json.get('id')
+        self.registered = json.get('registered')
+        self.name = json.get('name')
+        self.empty_spool_weight = json.get('empty_spool_weight')
+        self.extra = json.get('extra')
+        return self
 
 class Filament:
     id = ''
@@ -52,7 +53,7 @@ class Filament:
              color_hex = '', 
              extra = ''):
         
-        self.id = int(id)
+        self.id = id
         self.registered = registered_t
         self.name = name
         self.vendor = vendor 
@@ -72,22 +73,23 @@ class Filament:
 
         
     def from_json(self, json):
-        self.id = int(json['id'])
-        self.registered = json['registered']
-        self.name = json['name']
-        self.vendor = Vendor().from_json(json['vendor'])
-        self.material = json['material']
-        self.price = json['price']
-        self.density = json['density']
-        self.weight = json['weight']
-        self.spool_weight = json['spool_weight']
-        self.color_hex = json['color_hex']
-        self.extra = json['extra']
+        self.id = json.get('id')
+        self.registered = json.get('registered')
+        self.name = json.get('name')
+        self.vendor = Vendor().from_json(json.get('vendor'))
+        self.material = json.get('material')
+        self.price = json.get('price')
+        self.density = json.get('density')
+        self.weight = json.get('weight')
+        self.spool_weight = json.get('spool_weight')
+        self.color_hex = json.get('color_hex')
+        self.extra = json.get('extra')
         if self.extra:
             try:
                  self.idx = self.extra['idx']
             except:
                 self.idx = ""
+        return self
 
 
 
@@ -123,7 +125,7 @@ class Spool:
                  archived = '', 
                  extra = ''):
         
-        self.id = int(id)
+        self.id = id
         self.registered_t = registered_t
         self.first_used_t = first_used_t
         self.last_used_t = last_used_t
@@ -140,20 +142,21 @@ class Spool:
 
 
     def from_json(self, json):
-        self.id = int(json['id'])
-        self.registered_t = json['registered']
-        self.first_used_t = json['first_used']
-        self.last_used_t = json['last_used']
-        self.filament = Filament().from_json(json['filament'])
-        self.price = json['price']
-        self.remaining_weight = json['remaining_weight']
-        self.initial_weight = json['initial_weight']
-        self.spool_weight = json['spool_weight']
-        self.used_weight = json['used_weight']
-        self.remaining_length = json['remaining_length']
-        self.used_length = json['used_length']
-        self.archived = json['archived']
-        self.extra = json['extra']
+        self.id = json.get('id')
+        self.registered_t = json.get('registered')
+        self.first_used_t = json.get('first_used')
+        self.last_used_t = json.get('last_used')
+        self.filament = Filament().from_json(json.get('filament'))
+        self.price = json.get('price')
+        self.remaining_weight = json.get('remaining_weight')
+        self.initial_weight = json.get('initial_weight')
+        self.spool_weight = json.get('spool_weight')
+        self.used_weight = json.get('used_weight')
+        self.remaining_length = json.get('remaining_length')
+        self.used_length = json.get('used_length')
+        self.archived = json.get('archived')
+        self.extra = json.get('extra')
+        return self
 
     
 
@@ -176,7 +179,7 @@ class SpoolmanHandler:
         query_url = f"{self.api_url}{query}"
         response = requests.get(query_url, params = payload)
 
-        if response.status_code() == 200: 
+        if response.status_code == 200: 
             filament = Filament()
             filament.from_json(response.json()[0])
             return filament
@@ -202,8 +205,8 @@ class SpoolmanHandler:
 
         response = requests.get(query_url, params = payload)
 
-        if response.status_code() == 200: 
-            spool = spool()
+        if response.status_code == 200: 
+            spool = Spool()
             spool.from_json(response.json()[0])
             return spool
         else:
@@ -226,6 +229,7 @@ class SpoolmanHandler:
         }
         query_url = f"{self.api_url}{query}"
         response = requests.put(query_url, json = payload)
-
-        return response
+        result = response.json()
+        
+        return result
 
