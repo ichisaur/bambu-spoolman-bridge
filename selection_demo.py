@@ -2,8 +2,10 @@ from PIL import Image
 import numpy as np
 import xml.etree.ElementTree as ET
 
+pick_path = 'temp/pick_6.png' #Path to pick png
+slice_config_path = 'temp/Metadata/slice_info.config' #Path to slice config file
 
-im = Image.open('temp/pick_6.png')
+im = Image.open(pick_path) 
 im = im.convert('RGBA')
 
 green_pick_data = np.array(im)
@@ -16,7 +18,7 @@ green_pick_data[..., :-1][red_areas.T] = (0, 255, 0)
 green_pick_im = Image.fromarray(green_pick_data)
 green_pick_im.show()
 
-slice_XML = ET.parse('temp/Metadata/slice_info.config')
+slice_XML = ET.parse(slice_config_path)
 object_info = []
 for object in slice_XML.iter('object'):
     object_info.append(object.attrib)
