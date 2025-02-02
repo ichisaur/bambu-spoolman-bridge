@@ -1,11 +1,10 @@
 import zipfile
 import xml.etree.ElementTree as ET
-import requests
 import yaml
 from bambuFTP import BambuPrinterFTP
 import os
 import Spoolman
-
+import paho.mqtt.client as mqtt
 
 class Parse3MF:
     path = ""
@@ -77,19 +76,8 @@ for filament in filament_info:
     if sm_filament.id != "":
 
         result = spoolman_service.use_filament_by_weight(sm_filament, filament['used_g'])
-        print(result)
+        #print(result)
 
 
 
-
-#ftp.connect(host = device_ip, port = 990, timeout = 20)
-##print('Logging In') 
-#ftp.login(user = user, passwd = access_code)
-#ftp.prot_p()
-#print('Sucess')
-#
-#with open('temp.3mf', 'wb') as fp:
-#    ftp.retrbinary('RETR Spools_Plate_6.gcode.3mf', fp.write)
-#
-#ftp.quit()
 
