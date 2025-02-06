@@ -1,27 +1,72 @@
+
 from PIL import Image
 import numpy as np
 import xml.etree.ElementTree as ET
 
+class pickPNG:
+
+    def __init__(self, path_to_png):
+        self.im = Image.open(path_to_png).convert('RGBA')
+        self.im_data = np.array(self.im)
+
+
+    def _color_swapper(self, image_data, color_from, color_to): 
+        working_data = image_data
+        
+        
+        red, green, blue, alpha = working_data.T
+        
+        pick_areas = (red == color_from[0]) & (green == color_from[1]) & (blue == color_from[2]) & (alpha == color_from[3])
+        
+        working_data[..., :-1][pick_areas.T] = (color_to[0], color_to[1], color_to[2])
+        return working_data
+    
+    def _color_from_id(self, ID): 
+        r = ID % 256
+        g = ID // 256
+        b = 0
+        a = 255
+        return (r, g, b, a)
+
+    def generate_pick_image(self, select_list = [], canceled_list = []): 
+        data = np.array(self.im)
+
+        for id in select_list:
+            target_color = self._color_from_id(id)
+            print(target_color)
+            data = self._color_swapper(data, target_color, (255, 255, 1, 255))
+        
+        for id in canceled_list:
+            target_color = self._color_from_id(id)
+            data = self._color_swapper(data, target_color, (255, 0, 1, 255))
+
+        red, green, blue, alpha = data.T
+        
+        pick_areas = (blue == 0) & (alpha == 255)
+        
+        data[..., :-1][pick_areas.T] = (0, 255, 0)
+
+        return Image.fromarray(data)
+
+
+
+    
+
+
+
 pick_path = 'temp/pick_6.png' #Path to pick png
 slice_config_path = 'temp/Metadata/slice_info.config' #Path to slice config file
 
-im = Image.open(pick_path) 
-im = im.convert('RGBA')
+im = pickPNG(pick_path)
 
-green_pick_data = np.array(im)
 
-red, green, blue, alpha = green_pick_data.T
-
-red_areas = (blue == 0) & (alpha == 255)
-green_pick_data[..., :-1][red_areas.T] = (0, 255, 0)
-
-green_pick_im = Image.fromarray(green_pick_data)
-green_pick_im.show()
 
 slice_XML = ET.parse(slice_config_path)
 object_info = []
 for object in slice_XML.iter('object'):
     object_info.append(object.attrib)
+
+im.generate_pick_image().show()
 
 print("List of Objects:")
 for object in object_info:
@@ -30,6 +75,7 @@ for object in object_info:
 
 
 obj_list = []
+canceled_list = []
 confirm = 0
 while 1:
 
@@ -39,30 +85,18 @@ while 1:
         print('Cancelling following Objects IDs: ')
         for obj in obj_list:
             print(obj)
+        canceled_list = obj_list
+        obj_list = []
+        im.generate_pick_image(select_list=obj_list, canceled_list=canceled_list).show()
 
-        cancel_pick_data = confirm_pick_data
-        red, green, blue, alpha = cancel_pick_data.T
-        cancel_areas = (red == 255) & (green ==  255) 
-        cancel_pick_data[..., :-1][cancel_areas.T] = (255, 0, 0)
-        Image.fromarray(cancel_pick_data).show()
 
     else:
         if int(input_str) in obj_list:
             obj_list = list(filter(lambda a: a != int(input_str), obj_list))
         else: 
             obj_list.append(int(input_str))
-        print(obj_list)
-        confirm_pick_data =  np.array(im)
-        red, green, blue, alpha = confirm_pick_data.T
-        for obj in obj_list: 
-            red_channel = obj % 256
-            green_channel = obj // 256
-            confirm_areas = (red == red_channel) & (green == green_channel) & (blue == 0) & (alpha == 255)
-            confirm_pick_data[..., : -1][confirm_areas.T] = (255, 255, 0)
 
-        confirm_areas = (red != 255) & (green != 255) & (blue == 0) & (alpha == 255)
-        confirm_pick_data[..., : -1][confirm_areas.T] = (0, 255, 0)
-        Image.fromarray(confirm_pick_data).show()
+        im.generate_pick_image(select_list=obj_list, canceled_list=canceled_list).show()
 
 
 
